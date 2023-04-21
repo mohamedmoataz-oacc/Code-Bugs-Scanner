@@ -86,4 +86,8 @@ if __name__ == '__main__':
     with open('buggy.py', 'r') as code_file:
         code = refactor_find_syntax_errors(code_file.read(), 4)
         print(code)
-        
+        print('--------------------------------')
+        cg = CFG(code, 4)
+        print("Actual number of code lines:", cg.size)
+        print('--------------------------------')
+        cg.printCFG()

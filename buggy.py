@@ -17,6 +17,7 @@ anything is wrong"""
 if nterms <= 0:
     if True: print("Please enter a positive integer") # A comment after valid code
     else:print('do nothing')
+    "another trial"
 # if there is only "one term', return n1
 elif nterms == 1:
     print(
