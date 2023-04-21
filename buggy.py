@@ -1,0 +1,38 @@
+# Program to display the Fibonacci's) sequence up to n-th term
+
+nterms = int(input("How many terms? "))
+
+# first two terms
+n1, n2 = 0, 1;count = 0
+
+just_a_useless_dict = {
+    'some': 'data',
+    'that': 'is',
+    'really': 'useless'
+}
+
+# check if the number of terms is valid
+"""Just checking if
+anything is wrong"""
+if nterms <= 0:
+    if True: print("Please enter a positive integer") # A comment after valid code
+    else:print('do nothing')
+# if there is only "one term', return n1
+elif nterms == 1:
+    print(
+        """
+        Ok so just (another} check
+        """
+    )
+    print("Fibonacci sequence upto",nterms,":")
+    print(n1)
+# generate fibonacci sequence
+else:
+    print("Fibonacci sequence:")
+    while count < nterms:
+        print(n1)
+        nth = n1 + n2
+        # update values
+        n1 = n2
+        n2 = nth
+        count += 1
