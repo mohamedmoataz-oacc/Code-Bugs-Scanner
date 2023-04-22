@@ -76,7 +76,7 @@ def refactor_find_syntax_errors(code, indentation):
     return new_code
 
 if __name__ == '__main__':
-    with open('aes.py', 'r') as code_file:
+    with open('buggy.py', 'r') as code_file:
         code = refactor_find_syntax_errors(code_file.read(), 4)
         print(code)
         print('--------------------------------')
@@ -84,6 +84,6 @@ if __name__ == '__main__':
         print("Actual number of code lines:", cg.size)
         print('--------------------------------')
         cg.printCFG()
-        # ch_cg = cg.child_graphs[list(cg.child_graphs.keys())[0]].cfg
+        # ch_cg = cg.child_graphs[list(cg.child_graphs.keys())[1]].cfg
         # ch_cg.construct_graph()
         # ch_cg.printCFG()
