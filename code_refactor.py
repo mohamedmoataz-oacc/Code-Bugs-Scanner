@@ -31,8 +31,8 @@ def refactor_find_syntax_errors(code, indentation):
                     else: string_info[0] = code[i]
                     string_info[1] = current_line
                 else:   # If we are ending a string
-                    if len(string_info[0]) == 1 or (len(string_info[0]) == 3 and 
-                                    code[i-1] == code[i] and code[i-2] == code[i]):
+                    if code[i] == string_info[0][0] and (len(string_info[0]) == 1 or
+                        (len(string_info[0]) == 3 and code[i-1] == code[i] and code[i-2] == code[i])):
                         in_string = False
                         string_info[0], string_info[1] = None, None
 
@@ -58,21 +58,14 @@ def refactor_find_syntax_errors(code, indentation):
             if code[i] == ';' and not in_string: new_code += '\n'
             elif code[i] == '\n' and ((in_string and len(string_info[0]) == 3) or 
                                 len(stack) > 0): new_code += ' '
-            elif code[i] != '\n' and code[i] != '"' and code[i] != "'" and code[i-1] == ':' and not in_string:
+            elif (code[i] != '\n' and code[i] != '"' and code[i] != "'" and code[i-1] == ':' and code[i] not in matches 
+                  and not in_string and len(stack) == 0):
                 # Used in cases when there is no line break after if statement.
                 # ex. if x > 3: print("foo bar")
-                if len(stack) == 0:
-                    new_code += '\n'
-                    new_code += ' ' * (indents + indentation)
-                    current_line += 1
-                    if code[i] != ' ': new_code += code[i]
-                elif stack[-1][0] != '{':
-                    new_code += '\n'
-                    new_code += ' ' * (indents + indentation)
-                    current_line += 1
-                    if code[i] != ' ': new_code += code[i]
-                else:
-                    new_code += code[i]
+                # But not in cases like ex. fromto[0:9]
+                new_code += '\n'
+                new_code += ' ' * (indents + indentation)
+                if code[i] != ' ': new_code += code[i]
             else: new_code += code[i]
 
         if comment and code[i] == '\n': # Detects when a comment ends
@@ -83,7 +76,7 @@ def refactor_find_syntax_errors(code, indentation):
     return new_code
 
 if __name__ == '__main__':
-    with open('buggy.py', 'r') as code_file:
+    with open('aes.py', 'r') as code_file:
         code = refactor_find_syntax_errors(code_file.read(), 4)
         print(code)
         print('--------------------------------')
@@ -91,3 +84,6 @@ if __name__ == '__main__':
         print("Actual number of code lines:", cg.size)
         print('--------------------------------')
         cg.printCFG()
+        # ch_cg = cg.child_graphs[list(cg.child_graphs.keys())[0]].cfg
+        # ch_cg.construct_graph()
+        # ch_cg.printCFG()

@@ -3,7 +3,19 @@
 nterms = int(input("How many terms? "))
 
 # first two terms
-n1, n2 = 0, 1;count = 0
+n1, n2 = 0, 1; counter = 0
+
+def fibonacci(nterms):
+    count = 0
+    result = ''
+    while count < nterms:
+        result += str(n1) + ', '
+        nth = n1 + n2
+        # update values
+        n1 = n2
+        n2 = nth
+        count += 1
+    return result
 
 just_a_useless_dict = {
     'some': 'data',
@@ -30,10 +42,7 @@ elif nterms == 1:
 # generate fibonacci sequence
 else:
     print("Fibonacci sequence:")
-    while count < nterms:
-        print(n1)
-        nth = n1 + n2
-        # update values
-        n1 = n2
-        n2 = nth
-        count += 1
+    fibonacci(nterms)
+
+print("And that's our program. :)")
+print(n1+n2)
