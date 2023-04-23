@@ -15,7 +15,7 @@ def detect_infinite_loops(cfg:CFG) -> list:
         visited.add(node)
 
         # Loop through children of current node
-        for child_node in node.children.items():
+        for child_node in node.children:
              # Check if child has been visited before
             if child_node in visited:
                 # Check if child has multiple parents (loop detected)
