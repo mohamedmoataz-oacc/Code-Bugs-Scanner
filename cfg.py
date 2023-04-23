@@ -178,15 +178,15 @@ class CFG():
                                     # more than one node, we save it to not create it again
 
             # Determine the node type to insert this line into
-            if line.strip()[:3] == 'for':
+            if line.strip()[:4] == 'for ':
                 n_type = 'for'
-            elif line.strip()[:2] == 'if':
+            elif line.strip()[:3] == 'if ':
                 n_type = 'if'
-            elif line.strip()[:4] == 'elif':
+            elif line.strip()[:5] == 'elif ':
                 n_type = 'elif'
-            elif line.strip()[:4] == 'else':
+            elif line.strip()[:5] == 'else:':
                 n_type = 'else'
-            elif line.strip()[:5] == 'while':
+            elif line.strip()[:6] == 'while ':
                 n_type = 'while'
             else:
                 n_type = 'normal'
@@ -240,7 +240,7 @@ class CFG():
             # Determine edge type
             if current.node_type in ['normal']:
                 edge = Edge(None)
-            elif current.node_type in ['for ', 'while ', 'if ', 'elif ']:
+            elif current.node_type in ['for', 'while', 'if', 'elif']:
                 # A node can have 2 children, one if the condition is true and other if false.
                 # We traverse the true path first, so that's why when added_indent is 1, edge is true edge
                 if added_indent > 0: edge = Edge(True)
@@ -252,7 +252,7 @@ class CFG():
                 else: the_if_list[i][0].addNodeChild(common_child, Edge(False))
             the_if_list.clear()
 
-            if n_type in ['for ', 'while ', 'if ', 'elif ', 'else ']:
+            if n_type in ['for', 'while', 'if', 'elif', 'else']:
                 current_indent += 1     # We entered a new block
                 added_indent = 1        # and therefore added indentation
             
