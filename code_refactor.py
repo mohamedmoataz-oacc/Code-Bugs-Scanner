@@ -81,14 +81,18 @@ if __name__ == '__main__':
         print(code)
         print('--------------------------------')
         cg = CFG(code, 4)
+        cg.construct_graph()
         print("Actual number of code lines:", cg.size)
         print('--------------------------------')
-        print(cg.extractAllDefs())
+        # print(cg.extractAllDefs())
         # cg.printCFG()
-        ch_cg = cg.child_graphs[list(cg.child_graphs.keys())[0]]
-        ch_cg.extractAllDefs()
-        ch2_cg = ch_cg.child_graphs[list(ch_cg.child_graphs.keys())[0]]
+
+        for n in cg.get_nodes_list():
+            print(n)
+        # ch_cg = cg.child_graphs[list(cg.child_graphs.keys())[0]]
+        # ch_cg.extractAllDefs()
+        # ch2_cg = ch_cg.child_graphs[list(ch_cg.child_graphs.keys())[0]]
         # ch_cg.construct_graph()
         # ch_cg.printCFG()
-        print(ch_cg.code_lines)
-        print(ch2_cg.code_lines)
+        # print(ch_cg.code_lines)
+        # print(ch2_cg.code_lines)
