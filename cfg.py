@@ -64,15 +64,17 @@ class CFG():
     """
     Represents a control flow graph.
     """
-    def __init__(self, code, indentation):
+    def __init__(self, code, indentation, parent = None):
+        self.parent = parent
         self.root = Node('Start')
         self.size = 1
         self.indentation = indentation  # What indentation is used in the code
+        self.constructed = False    # indicates whether construct_graph was called on this graph or not
         self.code_lines = code.split('\n')
         self.code_lines.append('End')
-        self.child_graphs = dict()    # will use it when implementing def blocks
-        self.extractAllDefs()
-        self.construct_graph()
+        self.child_graphs = dict()  # contains graphs of all functions defined in the code.
+                                    # if this graph contains a function, it may have another functions defined
+                                    # in it, so they will also be child graphs for this function graph.
 
     def _checkUnwantedLine(self, line):
         if len(line.strip()) == 0: return True # If the line was empty
@@ -82,6 +84,7 @@ class CFG():
         else: return False
 
     def printCFG(self):
+        if not self.constructed: return
         queue = []
         current = self.root
         queue.append(current)
@@ -94,33 +97,31 @@ class CFG():
                     queue.append(i)
 
     def extractAllDefs(self):
-        indents = dict()
-        current_indent = 0
-        def_graph_codes = dict()
-        to_remove = list()
+        current_indent = 0  # How much is the previous line indented. (number of tabs)
+        def_code = None     # The code in the defined function
+        def_name = None     # The function's name
+        in_def = [False, None]  # If we are currently in a function and how much is it indented.
+        to_remove = list()      # We add lines in the function to this list to be removed from the code.
 
         for line in self.code_lines:
             if self._checkUnwantedLine(line): continue
 
             line_indent = (len(line) - len(line.lstrip())) // self.indentation
-            if line_indent < current_indent:
-                different_indent = current_indent - line_indent     # How many blocks were closed
-                for i in range(different_indent):
-                    new_cfg = CFG(def_graph_codes.pop(current_indent-i), self.indentation)
-                    name = indents.pop(current_indent-i)
-                    if len(indents) == 0: scope = 'global'
-                    else: scope = indents[current_indent-(i+1)]
-                    self.child_graphs[name] = Func(scope, new_cfg)
+            if line_indent < current_indent:    # if we get out of def block
+                new_cfg = CFG(def_code[:-1], self.indentation, self)
+                self.child_graphs[def_name] = new_cfg   # Add function graph to the children of this graph.
                 current_indent = line_indent
+                in_def = [False, None]
             
-            if line.strip()[:3] == 'def':
+            if line.strip()[:3] == 'def' and not in_def[0]:
                 current_indent += 1
-                indents[current_indent] = line[4:].strip()[:-1]
-                def_graph_codes[current_indent] = ''
+                in_def = [True, len(line) - len(line.lstrip())]
+                def_name = line.strip()[4:-1]
+                def_code = ''
                 to_remove.append(line)
-            elif len(def_graph_codes) == 0: continue
+            elif not in_def[0]: continue
             else:
-                def_graph_codes[current_indent] += line[self.indentation:] + '\n'
+                def_code += line[in_def[1] + self.indentation:] + '\n'
                 to_remove.append(line)
         
         for i in to_remove:
@@ -128,18 +129,22 @@ class CFG():
         return len(self.child_graphs)
 
     def construct_graph(self):
+        self.extractAllDefs()
+        self.constructed = True
         current = self.root     # Current node pointer
         indents = dict()        # Dictionary of the lines that causes indentation
         the_if_list = []        # List of nodes containing if and elif statements
         current_indent = 0      # How much is the previous line indented. (number of tabs)
-        last = list()
+        last = list()       # contains nodes from if or elif blocks that are waiting for the elif or else
+                            # blocks to be closed so they can point to the following line
         added_indent = 0        # if 1 this indicates a new indentation has happened,
                                 # if -1 this indicates an indentation was closed
 
         for line in self.code_lines:
             if self._checkUnwantedLine(line): continue
 
-            common_child = None
+            common_child = None     # If a node was created but is going to be added to the children list of
+                                    # more than one node, we save it to not create it again
 
             # Determine the node type to insert this line into
             if line.strip()[:3] == 'for':
@@ -177,21 +182,26 @@ class CFG():
                         current = indents.pop(current_indent - i)
                     else:
                         if len(the_if_list) != 0:
+                            # we don't want else statements in the_if_list because they always point to the next line
                             if the_if_list[-1][0].node_type == 'else': the_if_list.pop(-1)
                         the_if_list.append((indents.pop(current_indent - i), current_indent - i))
                 if n_type == 'elif' or n_type == 'else':
+                    # if the line that gets us out of an if or elif blocks is an elif or an else, we don't want
+                    # the last line in the if or elif blocks to point at it, so we save it in last list.
                     last.append(current)
                     if len(the_if_list) > 1:
                         for i in the_if_list[:-1]:
                             last.append(i[0])
                         the_if_list = the_if_list[-1:]
-                elif len(last) != 0 and line_indent + 1 == the_if_list[-1][1]:
-                    if the_if_list[-1][0].node_type == 'else': the_if_list.pop(-1)
-                    for i in last:
-                        if common_child is None:
-                            common_child = i.addChild(line.strip(), n_type, Edge(None))
-                        else: i.addNodeChild(common_child, Edge(None))
-                    last.clear()
+                elif len(last) != 0 and len(the_if_list) != 0:
+                    # when we get out of all elifs or else, we point the nodes in last to the line
+                    if line_indent + 1 == the_if_list[-1][1]:
+                        if the_if_list[-1][0].node_type == 'else': the_if_list.pop(-1)
+                        for i in last:
+                            if common_child is None:
+                                common_child = i.addChild(line.strip(), n_type, Edge(None))
+                            else: i.addNodeChild(common_child, Edge(None))
+                        last.clear()
 
                 added_indent = -1   # Since an indentation block was closed
                 current_indent -= different_indent

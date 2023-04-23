@@ -5,6 +5,17 @@ nterms = int(input("How many terms? "))
 # first two terms
 n1, n2 = 0, 1;count = 0
 
+if nterms > 4:
+    def justAFunction():
+        print('that contains')
+        def anotherFunction():
+            print("and that's it")
+        print('Hooraaay')
+else:
+    def noHorayFunction():
+        print('that contains')
+        def aFunction():
+            print("and that's it")
 
 just_a_useless_dict = {
     'some': 'data',
