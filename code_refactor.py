@@ -75,6 +75,16 @@ def refactor_find_syntax_errors(code, indentation):
         if code[i] == '\n': current_line += 1
     return new_code
 
+
+def to_bug_finder():
+    with open('buggy.py', 'r') as code_file:
+        code = refactor_find_syntax_errors(code_file.read(), 4)
+        print(code)
+        cg = CFG(code, 4)
+        cg.construct_graph()
+        return cg.get_nodes_list()
+
+
 if __name__ == '__main__':
     with open('buggy.py', 'r') as code_file:
         code = refactor_find_syntax_errors(code_file.read(), 4)
@@ -84,11 +94,9 @@ if __name__ == '__main__':
         cg.construct_graph()
         print("Actual number of code lines:", cg.size)
         print('--------------------------------')
-        # print(cg.extractAllDefs())
-        # cg.printCFG()
-
-        for n in cg.get_nodes_list():
-            print(n)
+        print(cg.extractAllDefs())
+        cg.printCFG()
+#       nodes = cg.get_nodes_list()
         # ch_cg = cg.child_graphs[list(cg.child_graphs.keys())[0]]
         # ch_cg.extractAllDefs()
         # ch2_cg = ch_cg.child_graphs[list(ch_cg.child_graphs.keys())[0]]

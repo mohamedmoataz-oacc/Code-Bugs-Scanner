@@ -101,7 +101,6 @@ class CFG():
         while len(queue) > 0:
             x = queue.pop(0)
             print(x, f" | P: {[i.code for i in x.sources]}")
-            print(x.get_info() + [i.code for i in x.sources])
             for i in x.children.keys():
                 if not x.children[i].visited:
                     x.children[i].visited = True
