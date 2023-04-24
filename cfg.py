@@ -1,22 +1,17 @@
 class Node():
     # Node types: normal, if, elif, else, def, for, while
-    def __init__(self, code, node_type = 'normal', condition_to_reach = None):
+    def __init__(self, code, node_type = 'normal', conditions_to_reach = []):
         self.code = code
         self.node_type = node_type
         self.sources = []    # Since that this is a graph (not a tree) so a node can have more than one source.
-        self.condition_to_reach = condition_to_reach
+        self.conditions_to_reach = conditions_to_reach
         self.children = dict()  # contains {Node: Edge}
 
     def __str__(self):
-        result = self.code + " | Type: " + self.node_type + " | CTR: " + str(self.condition_to_reach)
-        if self.sources: x = self.sources[0].children[self].edge
-        else: x = None
-        if x is not None:
-            result += f" ({x})"
-        return result
+        return self.code + " | Type: " + self.node_type + " | CTR: " + str(self.conditions_to_reach)
 
     def get_info(self):
-        lis = [str(self.code), str(self.node_type), str(self.condition_to_reach)]
+        lis = [str(self.code), str(self.node_type), str(self.conditions_to_reach)]
         if self.sources:
             x = self.sources[0].children[self].edge
         else:
@@ -25,30 +20,32 @@ class Node():
             lis.append(str(x))
         return lis
 
-    def extract_condition(self):
+    def extract_condition(self, edge):
         """
         Extracts the condition of the if, elif, for or while lines.
         """
-        if self.node_type not in ['for', 'while', 'if', 'elif']:
-            return
-        else:
-            return self.code[len(self.node_type)+1:-1]
+        x = self.conditions_to_reach.copy()
+        if self.node_type in ['for', 'while', 'if', 'elif']:
+            x.append(f'{str(edge)[0]}: ' + self.code[len(self.node_type)+1:-1])
+        return x
 
-    def addNodeChild(self, child_node, edge):
+    def addNodeChild(self, child_node, edge, called_from_add_child = False):
         """
         Used to add a node as a child to another node instead of creating a new node.
         """
         if child_node in self.children: return child_node
         self.children[child_node] = edge
         child_node.sources.append(self)
+        if len(self.conditions_to_reach) < len(child_node.conditions_to_reach) and not called_from_add_child:
+            child_node.conditions_to_reach = self.conditions_to_reach.copy()
         return child_node
     
     def addChild(self, child, node_type, edge):
         """
         Creates a new node and adds it as a child for this node.
         """
-        child_node = Node(child, node_type, self.extract_condition())
-        return self.addNodeChild(child_node, edge)
+        child_node = Node(child, node_type, self.extract_condition(edge))
+        return self.addNodeChild(child_node, edge, True)
 
 class Edge:
     """
@@ -143,12 +140,11 @@ class CFG():
                 current_indent = line_indent
                 in_def = [False, None]
             
-            if line.strip()[:3] == 'def' and not in_def[0]:
+            if line.strip()[:4] == 'def ' and not in_def[0]:
                 current_indent += 1
                 in_def = [True, len(line) - len(line.lstrip())]
                 def_name = line.strip()[4:-1]
                 def_code = ''
-                to_remove.append(line)
             elif not in_def[0]: continue
             else:
                 def_code += line[in_def[1] + self.indentation:] + '\n'
@@ -179,6 +175,10 @@ class CFG():
             # Determine the node type to insert this line into
             if line.strip()[:4] == 'for ':
                 n_type = 'for'
+            elif line.strip()[:4] == 'def ':
+                n_type = 'def'
+                def_indent = len(line) - len(line.lstrip())
+                line = ' ' * def_indent + line.strip()[4:-1]
             elif line.strip()[:3] == 'if ':
                 n_type = 'if'
             elif line.strip()[:5] == 'elif ':
@@ -189,6 +189,15 @@ class CFG():
                 n_type = 'while'
             else:
                 n_type = 'normal'
+            
+            # If the user initialized a block with anything other than (if, elif, else, while, for, def)
+            if line[-1] == ':' and n_type == 'normal':
+                x = line.split(' ')[0]
+                err = f'Invalid block intializer: "{x}".'
+                for i in ['for', 'while', 'if', 'elif', 'else', 'def']:
+                    if line.startswith(i):
+                        err += '\nDid you mean: "' + line.replace(i, i + ' ') + '" ?'
+                raise SyntaxError(err)
             
             # How much is the current line indented. (number of tabs)
             line_indent = (len(line) - len(line.lstrip())) // self.indentation
@@ -237,7 +246,7 @@ class CFG():
                 current_indent -= different_indent
 
             # Determine edge type
-            if current.node_type in ['normal']:
+            if current.node_type in ['normal', 'def']:
                 edge = Edge(None)
             elif current.node_type in ['for', 'while', 'if', 'elif']:
                 # A node can have 2 children, one if the condition is true and other if false.
@@ -251,6 +260,7 @@ class CFG():
                 else: the_if_list[i][0].addNodeChild(common_child, Edge(False))
             the_if_list.clear()
 
+            print(line, '\t\t', n_type)
             if n_type in ['for', 'while', 'if', 'elif', 'else']:
                 current_indent += 1     # We entered a new block
                 added_indent = 1        # and therefore added indentation
