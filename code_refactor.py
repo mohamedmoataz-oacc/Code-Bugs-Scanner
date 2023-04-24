@@ -8,9 +8,9 @@ def refactor_find_syntax_errors(code, indentation):
     in_string = False
     comment = False
     string_info = [None, None] # [type (' or "), start_line]
-    indents = 0     # How much indentation is at the start of this line
-    last = False    # If the last character was a line break or not. A space doesn't count
-                    # ex. "\n    foo", if the pointer is at f, then last will still be True
+    indents = 0         # How much indentation is at the start of this line
+    last = False        # If the last character was a line break or not. A space doesn't count
+    semicolon_num = 0   # ex. "\n    foo", if the pointer is at f, then last will still be True
 
     for i in range(len(code)):  # iterates over every character in code
         if not in_string and code[i] == '#':  # Determines if this line is a comment  
@@ -55,7 +55,9 @@ def refactor_find_syntax_errors(code, indentation):
                 raise SyntaxError(err)
 
             # Replace any semicolon that is not in a string with a new line
-            if code[i] == ';' and not in_string: new_code += '\n'
+            if code[i] == ';' and not in_string:
+                new_code += '\n'
+                semicolon_num += 1
             elif code[i] == '\n' and ((in_string and len(string_info[0]) == 3) or 
                                 len(stack) > 0): new_code += ' '
             elif (code[i] != '\n' and code[i] != '"' and code[i] != "'" and code[i-1] == ':' and code[i] not in matches 
@@ -73,21 +75,12 @@ def refactor_find_syntax_errors(code, indentation):
             new_code += '\n'
         
         if code[i] == '\n': current_line += 1
-    return new_code
-
-
-def to_bug_finder():
-    with open('buggy.py', 'r') as code_file:
-        code = refactor_find_syntax_errors(code_file.read(), 4)
-        print(code)
-        cg = CFG(code, 4)
-        cg.construct_graph()
-        return cg.get_nodes_list()
+    return [new_code, semicolon_num]
 
 
 if __name__ == '__main__':
     with open('buggy.py', 'r') as code_file:
-        code = refactor_find_syntax_errors(code_file.read(), 4)
+        code = refactor_find_syntax_errors(code_file.read(), 4)[0]
         print(code)
         print('--------------------------------')
         cg = CFG(code, 4)
