@@ -46,6 +46,13 @@ class Node():
         """
         child_node = Node(child, node_type, self.extract_condition(edge))
         return self.addNodeChild(child_node, edge, True)
+    
+    
+    def get_all_edges(self):
+        """
+        Returns a list of all  edges from this node.
+        """
+        return self.children.values()
 
 class Edge:
     """
