@@ -119,10 +119,7 @@ class CFG():
         queue.append(current)
         while len(queue) > 0:
             x = queue.pop(0)
-            if x.get_info() + [i.code for i in x.sources] in unique_nodes:
-                unique_nodes.remove(x.get_info() + [i.code for i in x.sources])
-                unique_nodes.append(x.get_info() + [i.code for i in x.sources])
-            else:
+            if x.get_info() + [i.code for i in x.sources] not in unique_nodes:
                 unique_nodes.append(x.get_info() + [i.code for i in x.sources])
             for i in x.children.keys():
                 if not x.children[i].visited:
