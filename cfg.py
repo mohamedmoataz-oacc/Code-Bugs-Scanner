@@ -28,6 +28,14 @@ class Node():
         if self.node_type in ['for', 'while', 'if', 'elif']:
             x.append(f'{str(edge)[0]}: ' + self.code[len(self.node_type)+1:-1])
         return x
+    
+    def _findCommonConditions(self, condition1, condition2):
+        new = []
+        for i in range(len(condition1)):
+            if condition1[i] == condition2[i]:
+                new.append(condition1[i])
+            else: break
+        return new
 
     def addNodeChild(self, child_node, edge, called_from_add_child = False):
         """
@@ -38,6 +46,8 @@ class Node():
         child_node.sources.append(self)
         if len(self.conditions_to_reach) < len(child_node.conditions_to_reach) and not called_from_add_child:
             child_node.conditions_to_reach = self.conditions_to_reach.copy()
+        elif not called_from_add_child:
+            child_node.conditions_to_reach = self._findCommonConditions(child_node.conditions_to_reach, self.conditions_to_reach)
         return child_node
     
     def addChild(self, child, node_type, edge):
