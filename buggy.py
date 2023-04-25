@@ -6,6 +6,7 @@ nterms = int(input("How many terms? "))
 n1, n2 = 0, 1;count = 0
 
 if nterms > 4:
+    used_but_undefined = 1
     def justAFunction():
         print('that contains')
         def anotherFunction():
@@ -16,6 +17,8 @@ else:
         print('that contains')
         def aFunction():
             print("and that's it")
+
+print(used_but_undefined)
 
 just_a_useless_dict = {
     'some': 'data',
@@ -46,11 +49,13 @@ else:
         print(n1)
         nth = n1 + n2
         # update values
+        if n1 < n2: break
         n1 = n2
         n2 = nth
         count += 1
 
 if 3: print(5)
+print('n == 5'.find('"'))
 print(9)
 
 
@@ -65,4 +70,3 @@ def function_to_test_duplicate():
 def function_to_test_duplicate():
     print("here we are")
     print("here we go again")
-
