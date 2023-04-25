@@ -1,9 +1,11 @@
 from cfg import CFG
+from bug_finder import find_unused_variables
 
 def refactor_find_syntax_errors(code, indentation):
     stack = []
     braces, matches = ['(', '{', '['], [')', '}', ']']
     new_code = ''
+    code_without_strings = ''
     current_line = 1
     in_string = False
     comment = False
@@ -57,37 +59,46 @@ def refactor_find_syntax_errors(code, indentation):
             # Replace any semicolon that is not in a string with a new line
             if code[i] == ';' and not in_string:
                 new_code += '\n'
+                code_without_strings += '\n'
                 semicolon_num += 1
-            elif code[i] == '\n' and ((in_string and len(string_info[0]) == 3) or 
-                                len(stack) > 0): new_code += ' '
+            elif code[i] == '\n' and ((in_string and len(string_info[0]) == 3) or len(stack) > 0):
+                new_code += ' '
             elif (code[i] != '\n' and code[i] != '"' and code[i] != "'" and code[i-1] == ':' and code[i] not in matches 
                   and not in_string and len(stack) == 0):
                 # Used in cases when there is no line break after if statement.
                 # ex. if x > 3: print("foo bar")
                 # But not in cases like ex. fromto[0:9]
                 new_code += '\n'
+                code_without_strings += '\n'
                 new_code += ' ' * (indents + indentation)
-                if code[i] != ' ': new_code += code[i]
-            else: new_code += code[i]
+                code_without_strings += ' ' * (indents + indentation)
+                if code[i] != ' ':
+                    new_code += code[i]
+                    code_without_strings += code[i]
+            else:
+                new_code += code[i]
+                if not in_string or code[i] == string_info[0][0]: code_without_strings += code[i]
 
         if comment and code[i] == '\n': # Detects when a comment ends
             comment = False
             new_code += '\n'
+            code_without_strings += '\n'
         
         if code[i] == '\n': current_line += 1
-    return [new_code, semicolon_num]
+    return [new_code, semicolon_num, code_without_strings]
 
 
 if __name__ == '__main__':
     with open('buggy.py', 'r') as code_file:
-        code = refactor_find_syntax_errors(code_file.read(), 4)[0]
+        code = refactor_find_syntax_errors(code_file.read(), 4)[2]
         print(code)
         print('--------------------------------')
         cg = CFG(code, 4)
         cg.construct_graph()
         print("Actual number of code lines:", cg.size)
         print('--------------------------------')
-        print(cg.extractAllDefs())
+        # print(find_unused_variables(cg))
+        # print(cg.extractAllDefs())
         cg.printCFG()
 #       nodes = cg.get_nodes_list()
         # ch_cg = cg.child_graphs[list(cg.child_graphs.keys())[0]]
