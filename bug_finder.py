@@ -85,12 +85,16 @@ def duplicate_finder(code='buggy.py'):
         code_lines = [line.strip().replace("'", '"') for line in code_file]
     code_lines_clone = code_lines[:]
     ignored_duplicates = ['else:', '"""', '']
+    duplicates = []
     while True:
         duplicated = False
         for line in code_lines_clone:
             if line not in ignored_duplicates and code_lines_clone.count(line) > 2:
                 duplicated = True
                 indices = [index+1 for index in [i for i, x in enumerate(code_lines) if x == line]]
+                temp = [line]
+                temp.extend([indices])
+                duplicates.append(temp)
                 print("code : ", line, 'duplicated at lines :  ',  end='')
                 for index in indices:
                     print(index, ' ', end='')
@@ -100,6 +104,16 @@ def duplicate_finder(code='buggy.py'):
                 break
         if not duplicated:
             break
+    print(duplicates)
+    dup = []
+    for i in range(len(duplicates)):
+        clone = [x+1 for x in duplicates[i][1][:]]
+        for j in range(i+1, len(duplicates)):
+            if duplicates[j][1] == clone:
+                dup.append([duplicates[i], duplicates[j]])
+    for d in dup:
+        print(d)
+
 
 
 
