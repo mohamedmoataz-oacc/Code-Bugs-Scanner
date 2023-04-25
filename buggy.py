@@ -6,13 +6,15 @@ nterms = int(input("How many terms? "))
 n1, n2 = 0, 1;count = 0
 
 if nterms > 4:
-    used_but_undefined = 1
-    def justAFunction():
+    def justAFunction(x):
         print('that contains')
-        def anotherFunction():
+        if x == 'ok':
             print("and that's it")
-        print('Hooraaay')
+            return 'flag{hdj}'
+        return x
+        print('returned', 'anything')
 else:
+    used_but_undefined = 0
     def noHorayFunction():
         print('that contains')
         def aFunction():
@@ -20,11 +22,11 @@ else:
 
 print(used_but_undefined)
 
-just_a_useless_dict = {
-    'some': 'data',
-    'that': 'is',
-    'really': 'useless'
-}
+# just_a_useless_dict = {
+#     'some': 'data',
+#     'that': 'is',
+#     'really': 'useless'
+# }
 
 # check if the number of terms is valid
 """Just checking if

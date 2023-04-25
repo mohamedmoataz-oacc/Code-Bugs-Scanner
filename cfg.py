@@ -1,9 +1,7 @@
 class Node():
-    node_id = -1
     # Node types: normal, if, elif, else, def, for, while
-    def __init__(self, code, node_type = 'normal', conditions_to_reach = []):
-        Node.node_id += 1
-        self.id = Node.node_id
+    def __init__(self, code, node_type = 'normal', conditions_to_reach = [], node_id = 0):
+        self.id = node_id
         self.code = code
         self.node_type = node_type
         self.sources = []    # Since that this is a graph (not a tree) so a node can have more than one source.
@@ -53,11 +51,11 @@ class Node():
             child_node.conditions_to_reach = self._findCommonConditions(child_node.conditions_to_reach, self.conditions_to_reach)
         return child_node
     
-    def addChild(self, child, node_type, edge):
+    def addChild(self, child, node_type, edge, node_id):
         """
         Creates a new node and adds it as a child for this node.
         """
-        child_node = Node(child, node_type, self.extract_condition(edge))
+        child_node = Node(child, node_type, self.extract_condition(edge), node_id=node_id)
         return self.addNodeChild(child_node, edge, True)
     
     
@@ -91,9 +89,10 @@ class CFG():
     """
     Represents a control flow graph.
     """
-    def __init__(self, code, indentation, parent = None):
+    def __init__(self, code, indentation, parent = None, debug = False):
         self.parent = parent
-        self.root = Node('Start')
+        self.debug = debug
+        self.root = Node('Start', node_id = 0)
         self.size = 1
         self.indentation = indentation  # What indentation is used in the code
         self.constructed = False    # indicates whether construct_graph was called on this graph or not
@@ -118,7 +117,7 @@ class CFG():
         queue.append(current)
         while len(queue) > 0:
             x = queue.pop(0)
-            print(x, f" | P: {[i.code for i in x.sources]}")
+            print(x, f" | P: {[i.id for i in x.sources]}")
             for i in x.children.keys():
                 if x.children[i].visited == visited_set_to:
                     x.children[i].visited += 1
@@ -254,22 +253,22 @@ class CFG():
                         last[line_indent] = []
                     if current.code[:7] != 'return ' and current.code[:6] != 'break\n':
                         last[line_indent].append(current)
-                        print(f"ADDED {current.code} to last {line_indent}")
+                        if self.debug: print(f"ADDED {current.code} to last {line_indent}")
                         x = line_indent + 1
                         while last.get(x) is not None:
                             for i in last.pop(x):
                                 last[line_indent].append(i)
-                                print(f"ADDED {i.code} to last {line_indent}")
+                                if self.debug: print(f"ADDED {i.code} to last {line_indent}")
                             x += 1
                     if len(the_if_list) > 1:
                         for i in the_if_list[:-1]:
                             last[line_indent].append(i[0])
-                            print(f"ADDED {i[0].code} to last {line_indent}")
+                            if self.debug: print(f"ADDED {i[0].code} to last {line_indent}")
                             x = line_indent + 1
                             while last.get(x) is not None:
                                 for j in last.pop(x):
                                     last[line_indent].append(j)
-                                    print(f"ADDED {j.code} to last {line_indent}")
+                                    if self.debug: print(f"ADDED {j.code} to last {line_indent}")
                                 x += 1
                         the_if_list = the_if_list[-1:]
                 elif last.get(line_indent) is not None:
@@ -278,9 +277,9 @@ class CFG():
                         if line_indent + 1 == the_if_list[-1][1]:
                             if the_if_list[-1][0].node_type == 'else': the_if_list.pop(-1)
                             for i in last.pop(line_indent):
-                                print(f"REMOVED {i.code} from last {line_indent}")
+                                if self.debug: print(f"REMOVED {i.code} from last {line_indent}")
                                 if common_child is None:
-                                    common_child = i.addChild(line.strip(), n_type, Edge(None))
+                                    common_child = i.addChild(line.strip(), n_type, Edge(None), node_id = self.size)
                                 else: i.addNodeChild(common_child, Edge(None))
 
                 added_indent = -1   # Since an indentation block was closed
@@ -297,7 +296,7 @@ class CFG():
 
             for i in range(len(the_if_list)):
                 if common_child is None:
-                    common_child = the_if_list[i][0].addChild(line.strip(), n_type, Edge(False))
+                    common_child = the_if_list[i][0].addChild(line.strip(), n_type, Edge(False), node_id = self.size)
                 else: the_if_list[i][0].addNodeChild(common_child, Edge(False))
             the_if_list.clear()
 
@@ -310,7 +309,7 @@ class CFG():
             
                 # We add the indentation of this block as a key to the indents dictionary, with a value of
                 # node containing the line that caused the indentation (for, while, if or elif)
-                if common_child is None:indents[current_indent] = current.addChild(line.strip(), n_type, edge)
+                if common_child is None:indents[current_indent] = current.addChild(line.strip(), n_type, edge, node_id = self.size)
                 else:
                     if current in last: indents[current_indent] = common_child
                     else: indents[current_indent] = current.addNodeChild(common_child, edge)
@@ -320,7 +319,7 @@ class CFG():
                 # Add this line as a child to the current node and set the pointer to point at the newly added node
                 # If the node already exists, use it instead of making a new one.
                 if common_child is None:
-                    current = current.addChild(line.strip(), n_type, edge)
+                    current = current.addChild(line.strip(), n_type, edge, node_id = self.size)
                 else:
                     if current in last: current = common_child
                     else: current = current.addNodeChild(common_child, edge)
