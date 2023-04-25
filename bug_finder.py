@@ -71,38 +71,36 @@ def checkReservedKeyword(word):
     if word in keywords: return True
     return False
 
-def duplicate_finder(code):
-    code_lines = [line.replace(' ', '') for line in code[0].split('\n')]
-    semi = code[1]
+def duplicate_finder(code='buggy.py'):
+    with open(code, 'r') as code_file:
+        code_lines = [line.strip().replace("'", '"') for line in code_file]
 
-    itr = 1
+    line_number = 1
     for line in code_lines:
-        print(itr, line)
-        itr += 1
+        print(line_number, line)
+        line_number += 1
 
-    duplicated_lines = []
-
+    code_lines_clone = code_lines[:]
+    ignored_duplicates = ['else:', '"""', '']
+    duplicates = []   # [[line_1, index1, index2, ...], [line_2, index1, index2, ...], ....]
     while True:
-        for i in range(len(code_lines)):
-            if code_lines[i] != '':
-                if code_lines.count(code_lines[i]) > 1:
-                    indices = [i for i, x in enumerate(code_lines) if x == code_lines[i]]
-                    print(i + 1, indices)
-
-        break
-
-    # for i in range(len(code_lines)):
-    #     if code_lines[i] != '' and code_lines[i] != 'else':
-    #         if code_lines.count(code_lines[i]) > 1:
-    #             duplicated_indices = [i+1-semi]
-    #             for j in range(i, len(code_lines)-1):
-    #                 if code_lines[i] == code_lines[j+1]:
-    #                     duplicated_indices.append(j+2-semi)
-    #             duplicated_lines.append(duplicated_indices)
-    # print(duplicated_lines)
+        duplicated = False
+        for line in code_lines_clone:
+            if line not in ignored_duplicates and code_lines_clone.count(line) > 1:
+                duplicated = True
+                indices = [i for i, x in enumerate(code_lines) if x == line]
+                indices = [index+1 for index in [i for i, x in enumerate(code_lines) if x == line]]
+                print(line, indices)
+                for i in range(code_lines_clone.count(line)):
+                    code_lines_clone.remove(line)
+                break
+        if not duplicated:
+            break
 
 
-# if __name__ == '__main__':
-#     with open('buggy.py', 'r') as code_file:
-#         # code = cr.refactor_find_syntax_errors(code_file.read(), 4)
-#         duplicate_finder(code)
+
+if __name__ == '__main__':
+    # with open('buggy.py', 'r') as code_file:
+    # code = cr.refactor_find_syntax_errors(code_file.read(), 4)
+    duplicate_finder()
+

@@ -56,3 +56,17 @@ else:
 
 if 3: print(5)
 print('n == 5'.find('"'))
+print(9)
+
+
+def function_to_test_duplicate():
+    print("here we are")
+    print("here we go again")
+
+def function_to_test_duplicate():
+    print("here we are")
+    print("here we go again")
+
+def function_to_test_duplicate():
+    print("here we are")
+    print("here we go again")
