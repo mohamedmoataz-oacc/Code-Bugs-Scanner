@@ -1,3 +1,6 @@
+import checks
+import errors
+
 class Node():
     # Node types: normal, if, elif, else, def, for, while
     def __init__(self, code, node_type = 'normal', conditions_to_reach = [], node_id = 0):
@@ -164,6 +167,8 @@ class CFG():
                 current_indent += 1
                 in_def = [True, len(line) - len(line.lstrip())]
                 def_name = line.strip()[4:-1]
+                if checks.checkReservedKeyword(def_name.split('(')[0]):
+                    raise errors.InvalidUseOfReservedKeywordException(f"Cannot use {def_name.split('(')[0]} as function name.")
                 def_code = ''
             elif not in_def[0]: continue
             else:

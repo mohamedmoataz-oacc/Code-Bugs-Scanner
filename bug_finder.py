@@ -1,8 +1,8 @@
 # import code_refactor as cr
 import cfg
 import re
-from errors import NonDeclaredVariableException, DeclaredButNeverUsedException
-
+import errors
+import checks
 
 def find_unused_variables(graph: cfg.CFG):
     if not graph.constructed: return
@@ -36,8 +36,11 @@ def find_unused_variables(graph: cfg.CFG):
                         if x[0][-1] in ['*', '/']: x[0] = x[0][:-1]
                     line_defs = x[0].split(',')     # In case (ex. x, y = 2, 3)
                     for i in line_defs:
-                        if defs.get(i.strip()) is None: defs[i.strip()] = False
-                        if current_defs.get(i.strip()) is None: current_defs[i.strip()] = node.id
+                        if not checks.checkReservedKeyword(i.strip()):
+                            if defs.get(i.strip()) is None: defs[i.strip()] = False
+                            if current_defs.get(i.strip()) is None: current_defs[i.strip()] = node.id
+                        else:
+                            raise errors.InvalidUseOfReservedKeywordException(f"Cannot use {i.strip()} as a variable name.")
         
         # Find uses
         if node.node_type not in ['def', 'else'] and node.code not in ['Start', 'End']:
@@ -55,9 +58,9 @@ def find_unused_variables(graph: cfg.CFG):
                     if used_variables[i-1] + used_variables[i] in code: continue
                 used_variables[i] = used_variables[i][:-1]
                 # Make sure that the variables we got are not python reserved keywords
-                if not checkReservedKeyword(used_variables[i]):
+                if not checks.checkReservedKeyword(used_variables[i]):
                     if current_defs.get(used_variables[i]) is None:
-                        raise NonDeclaredVariableException(
+                        raise errors.NonDeclaredVariableException(
                             f'Variable "{used_variables[i]}" was used in "{node.code}" but may not be declared.')
                     else:
                         defs[used_variables[i]] = True
@@ -73,18 +76,9 @@ def find_unused_variables(graph: cfg.CFG):
         if not j:
             err += f'\n"{i}" was never used'
     if err:
-        raise DeclaredButNeverUsedException(err)
+        raise errors.DeclaredButNeverUsedException(err)
     return defs
 
-
-def checkReservedKeyword(word):
-    keywords = (
-        'False', 'def', 'if', 'raise', 'None', 'del', 'import', 'return', 'True', 'elif', 'async', 'await',
-        'in', 'try', 'and', 'else', 'is', 'while', 'as', 'except', 'lambda', 'with', 'assert', 'finally',
-        'nonlocal', 'yield', 'break', 'for', 'not', 'class', 'from', 'or', 'continue', 'global', 'pass'
-    )
-    if word in keywords: return True
-    return False
 
 def duplicate_finder(code='buggy.py'):
     with open(code, 'r') as code_file:

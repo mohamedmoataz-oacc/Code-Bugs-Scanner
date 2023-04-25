@@ -101,7 +101,7 @@ if __name__ == '__main__':
         # print(cg.extractAllDefs())
         # cg.printCFG()
 #       nodes = cg.get_nodes_list()
-        ch_cg = cg.child_graphs[list(cg.child_graphs.keys())[0]]
+        # ch_cg = cg.child_graphs[list(cg.child_graphs.keys())[0]]
         # ch_cg.extractAllDefs()
         # ch2_cg = ch_cg.child_graphs[list(ch_cg.child_graphs.keys())[0]]
         # ch_cg.construct_graph()
