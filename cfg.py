@@ -30,13 +30,13 @@ class Node():
         """
         x = self.conditions_to_reach.copy()
         if self.node_type in ['for', 'while', 'if', 'elif']:
-            x.append(f'{str(edge)[0]}: ' + self.code[len(self.node_type)+1:-1])
+            x.append(f'{str(edge)[0]}{self.id}: ' + self.code[len(self.node_type)+1:-1])
         return x
     
-    def _findCommonConditions(self, condition1, condition2):
+    def findCommonConditions(self, condition1):
         new = []
-        for i in range(len(condition1)):
-            if condition1[i] == condition2[i]:
+        for i in range(min(len(condition1), len(self.conditions_to_reach))):
+            if condition1[i] == self.conditions_to_reach[i]:
                 new.append(condition1[i])
             else: break
         return new
@@ -48,10 +48,16 @@ class Node():
         if child_node in self.children: return child_node
         self.children[child_node] = edge
         child_node.sources.append(self)
+        # print(self.conditions_to_reach, child_node.conditions_to_reach)
         if len(self.conditions_to_reach) < len(child_node.conditions_to_reach) and not called_from_add_child:
             child_node.conditions_to_reach = self.conditions_to_reach.copy()
+            # print("REDUCING", child_node.code, child_node.node_type, self.node_type)
+            if child_node.node_type in ['elif', 'else'] and self.node_type in ['if', 'elif']:
+                child_node.conditions_to_reach.append(f'{str(edge)[0]}{self.id}: ' + self.code[len(self.node_type)+1:-1])
         elif not called_from_add_child:
-            child_node.conditions_to_reach = self._findCommonConditions(child_node.conditions_to_reach, self.conditions_to_reach)
+            child_node.conditions_to_reach = self.findCommonConditions(child_node.conditions_to_reach)
+            # print("REDUCING", child_node.code)
+
         return child_node
     
     def addChild(self, child, node_type, edge, node_id):
@@ -310,21 +316,21 @@ class CFG():
             
                 # We add the indentation of this block as a key to the indents dictionary, with a value of
                 # node containing the line that caused the indentation (for, while, if or elif)
-                if common_child is None:indents[current_indent] = current.addChild(line.strip(), n_type, edge, node_id = self.size)
+                if common_child is None:
+                    indents[current_indent] = current.addChild(line.strip(), n_type, edge, node_id = self.size)
+                    self.size += 1
                 else:
-                    if current in last: indents[current_indent] = common_child
+                    if current in last[line_indent]: indents[current_indent] = common_child
                     else: indents[current_indent] = current.addNodeChild(common_child, edge)
-                self.size += 1
                 current = indents[current_indent]   # Let the current pointer point to the newly added node
             else:
                 # Add this line as a child to the current node and set the pointer to point at the newly added node
                 # If the node already exists, use it instead of making a new one.
                 if common_child is None:
                     current = current.addChild(line.strip(), n_type, edge, node_id = self.size)
+                    self.size += 1
                 else:
-                    if current in last: current = common_child
-                    else: current = current.addNodeChild(common_child, edge)
-                self.size += 1
+                    current = current.addNodeChild(common_child, edge)
 
         for i in returns:
             i.addNodeChild(current, Edge(None))

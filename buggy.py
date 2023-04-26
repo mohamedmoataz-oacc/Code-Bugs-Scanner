@@ -1,79 +1,37 @@
 # Program to display the Fibonacci's) sequence up to n-th term
-
 nterms = int(input("How many terms? "))
-
+ 
 # first two terms
-n1, n2 = 0, 1;count = 0
-
+n1, n2 = 0, 1
+count = 0
+ 
 if nterms > 4:
+    e1 = 99
+ 
     def justAFunction(x):
         print('that contains')
         if x == 'ok':
             print("and that's it")
             return 'flag{hdj}'
         return x
-        print('returned', 'anything')
-    print('Please do not interpret this as part of the function')
-    print('this too')
-else:
+ 
+    e2 = 555
+elif nterms > 6:
     used_but_undefined = 0
+ 
     def noHorayFunction():
         print('that contains')
+ 
         def aFunction():
             print("and that's it")
-    n9 = 0
-
-# print(used_but_undefined)
-
-just_a_useless_dict = {
-    'some': 'data',
-    'that': 'is',
-    'really': 'useless'
-}
-
-# check if the number of terms is valid
-"""Just checking if
-anything is wrong"""
-if nterms <= 0:
-    if True: print("Please enter a positive integer") # A comment after valid code
-    else:print('do nothing')
-    "another trial"
-# if there is only "one term', return n1
-elif nterms == 1:
-    print(
-        """
-        Ok so just (another} check
-        """
-    )
-    print("Fibonacci sequence upto",nterms,":")
-    print(n1)
-# generate fibonacci sequence
+    yy = 89
 else:
-    print("Fibonacci sequence:")
-    while count < nterms:
-        print(n1)
-        nth = n1 + n2
-        # update values
-        if n1 < n2:
-            break
-            print("cont")
-        n1 = n2
-        n2 = nth
-        count += 1
-
-if 3: print(5)
-print('n == 5'.find('"'))
-print(9)
-
-
-def function_to_test_duplicate():
-    print("here we are")
-    print("here we go again")
-
-def function_to_test_duplicate():
-    print("here we are")
-    print("here we go again")
-
-def function_to_test_duplicate():
-    print("here we are")
-    print("here we go again")
+    xx = 99
+ 
+i = 0
+while i < 5 and xx != i:
+    e6 = 5
+    zz = 5
+    e6 = e6 + 1
+    i += 1
+# print(zz)

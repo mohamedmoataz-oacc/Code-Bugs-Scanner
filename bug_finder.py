@@ -25,6 +25,7 @@ def find_bugs(graph: cfg.CFG):
         # If in an iteration, we return to line that is before the line we were using in the last iteration
         # we delete all definitions after the current line from the current_defs dict.
         to_pop = [i for i, j in current_defs.items() if j > current.id]
+        if to_pop: print('Popping:', to_pop)
         for i in to_pop:
             current_defs.pop(i)
 
@@ -32,7 +33,7 @@ def find_bugs(graph: cfg.CFG):
         if current.node_type == 'normal':
             x = current.code.split('=')
             if len(x) > 1:
-                if x[1] != '' and x[0][-1] != '!':
+                if x[1] != '' and x[0][-1] not in ['!', '<', '>']:
                     # if line was (ex. counter += 1) or (ex. x //= 2)
                     if x[0][-1] in ['+', '-', '/', '*', '%', '^']:
                         x[0] = x[0][:-1]
@@ -40,7 +41,7 @@ def find_bugs(graph: cfg.CFG):
                     line_defs = x[0].split(',')     # In case (ex. x, y = 2, 3)
                     for i in line_defs:
                         if not checks.checkReservedKeyword(i.strip()):
-                            if defs.get(i.strip()) is None: defs[i.strip()] = False
+                            if defs.get(i.strip()) is None: defs[i.strip()] = [False, current]
                             if current_defs.get(i.strip()) is None: current_defs[i.strip()] = current.id
                         else:
                             raise errors.InvalidUseOfReservedKeywordException(f"Cannot use {i.strip()} as a variable name.")
@@ -51,7 +52,8 @@ def find_bugs(graph: cfg.CFG):
             # Make sure we don't interpret a def as a use
             code_splitted = code.split('=')
             if len(code_splitted) > 1:
-                if code_splitted[1] != '': code = '='.join(code_splitted[1:])
+                if code_splitted[1] != '' and code_splitted[0][-1] not in ['!', '<', '>']:
+                    code = '='.join(code_splitted[1:])
 
             # Use regular expressions to find all variables in the line
             used_variables = re.findall('[a-zA-Z_][a-zA-Z0-9_]*[^a-zA-Z0-9_(.]', code + ' ')
@@ -65,8 +67,12 @@ def find_bugs(graph: cfg.CFG):
                     if current_defs.get(used_variables[i]) is None:
                         raise errors.NonDeclaredVariableException(
                             f'Variable "{used_variables[i]}" was used in "{current.code}" but may not be declared.')
+                    elif (defs[used_variables[i]][1].findCommonConditions(current.conditions_to_reach) 
+                          != defs[used_variables[i]][1].conditions_to_reach):
+                        raise errors.NonDeclaredVariableException(
+                            f'Variable "{used_variables[i]}" was used in "{current.code}" but may not be declared.')
                     else:
-                        defs[used_variables[i]] = True
+                        defs[used_variables[i]][0] = True
 
         for i in current.children.keys():
             if is_break_or_continue or (is_return and current.code != 'End'):
@@ -80,12 +86,13 @@ def find_bugs(graph: cfg.CFG):
     
     err = ''
     for i, j in defs.items():
-        if not j:
+        if not j[0]:
             err += f'\n"{i}" was never used'
     if err:
         print(defs)
+        print(current_defs)
         raise errors.DeclaredButNeverUsedException(err)
-    return defs
+    return list(defs.keys())
 
 
 def duplicate_finder(code='buggy.py'):
