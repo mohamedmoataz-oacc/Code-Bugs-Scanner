@@ -6,3 +6,10 @@ def checkReservedKeyword(word):
     )
     if word in keywords: return True
     return False
+
+def checkUnwantedLine(line):
+        if len(line.strip()) == 0: return True # If the line was empty
+        # If line is a string that is not used.
+        elif ((line.strip().startswith("'") and line.strip().endswith("'")) or 
+                (line.strip().startswith('"') and line.strip().endswith('"'))): return True
+        else: return False

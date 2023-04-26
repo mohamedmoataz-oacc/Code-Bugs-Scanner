@@ -1,10 +1,13 @@
-# import code_refactor as cr
 import cfg
 import re
 import errors
 import checks
 
-def find_unused_variables(graph: cfg.CFG):
+def find_bugs(graph: cfg.CFG):
+    """
+    Can currently find defined but unused variables, variables that are used but not defined, invalid use
+    of python reserved keywords and unreachable code after (break, continue and return statements).
+    """
     if not graph.constructed: return
     
     defs = dict()   # All definitions in the graph and if it was used or not
@@ -15,19 +18,19 @@ def find_unused_variables(graph: cfg.CFG):
 
     stack.append(current)
     while len(stack) > 0:
-        node: cfg.Node = stack.pop()
+        current: cfg.Node = stack.pop()
+        is_break_or_continue = True if current.code in ['break', 'continue'] else False
+        is_return = True if current.code == 'return' or current.code[:7] == 'return ' else False
 
         # If in an iteration, we return to line that is before the line we were using in the last iteration
         # we delete all definitions after the current line from the current_defs dict.
-        to_pop = [i for i, j in current_defs.items() if j > node.id]
-        if to_pop:
-            print('Popping:', to_pop)
+        to_pop = [i for i, j in current_defs.items() if j > current.id]
         for i in to_pop:
             current_defs.pop(i)
 
         # Find defs
-        if node.node_type == 'normal':
-            x = node.code.split('=')
+        if current.node_type == 'normal':
+            x = current.code.split('=')
             if len(x) > 1:
                 if x[1] != '' and x[0][-1] != '!':
                     # if line was (ex. counter += 1) or (ex. x //= 2)
@@ -38,13 +41,13 @@ def find_unused_variables(graph: cfg.CFG):
                     for i in line_defs:
                         if not checks.checkReservedKeyword(i.strip()):
                             if defs.get(i.strip()) is None: defs[i.strip()] = False
-                            if current_defs.get(i.strip()) is None: current_defs[i.strip()] = node.id
+                            if current_defs.get(i.strip()) is None: current_defs[i.strip()] = current.id
                         else:
                             raise errors.InvalidUseOfReservedKeywordException(f"Cannot use {i.strip()} as a variable name.")
         
         # Find uses
-        if node.node_type not in ['def', 'else'] and node.code not in ['Start', 'End']:
-            code = node.code
+        if current.node_type not in ['def', 'else'] and current.code not in ['Start', 'End']:
+            code = current.code
             # Make sure we don't interpret a def as a use
             code_splitted = code.split('=')
             if len(code_splitted) > 1:
@@ -54,21 +57,25 @@ def find_unused_variables(graph: cfg.CFG):
             used_variables = re.findall('[a-zA-Z_][a-zA-Z0-9_]*[^a-zA-Z0-9_(.]', code + ' ')
             for i in range(len(used_variables)):
                 if i != 0:
-                    # For cases like (ex. node.children) we only take node as the used variable
+                    # For cases like (ex. current.children) we only take node as the used variable
                     if used_variables[i-1] + used_variables[i] in code: continue
                 used_variables[i] = used_variables[i][:-1]
                 # Make sure that the variables we got are not python reserved keywords
                 if not checks.checkReservedKeyword(used_variables[i]):
                     if current_defs.get(used_variables[i]) is None:
                         raise errors.NonDeclaredVariableException(
-                            f'Variable "{used_variables[i]}" was used in "{node.code}" but may not be declared.')
+                            f'Variable "{used_variables[i]}" was used in "{current.code}" but may not be declared.')
                     else:
                         defs[used_variables[i]] = True
 
-        for i in node.children.keys():
-            if node.children[i].visited == visited_set_to:
-                node.children[i].visited += 1
-                node.children[i].visited %= 2
+        for i in current.children.keys():
+            if is_break_or_continue or (is_return and current.code != 'End'):
+                err = f"{i.code} is never going to be executed after {current.code}"
+                raise errors.UnReachableCodeException(err)
+            
+            if current.children[i].visited == visited_set_to:
+                current.children[i].visited += 1
+                current.children[i].visited %= 2
                 stack.append(i)
     
     err = ''
@@ -76,6 +83,7 @@ def find_unused_variables(graph: cfg.CFG):
         if not j:
             err += f'\n"{i}" was never used'
     if err:
+        print(defs)
         raise errors.DeclaredButNeverUsedException(err)
     return defs
 
@@ -101,7 +109,16 @@ def duplicate_finder(code='buggy.py'):
         if not duplicated:
             break
 
-
+# def find_duplicates(code):
+#     code = code.split('\n')
+#     code_lines = [line.strip().replace("'", '"') for line in code if not checks.checkUnwantedLine(line)]
+#     final_duplicates = dict()
+#     counter = 1
+#     duplicates = dict()
+#     for line in code_lines:
+#         if duplicates.get(line) is None: duplicates[line] = [counter]
+#         else: duplicates[line].append(counter)
+#         counter += 1
 
 if __name__ == '__main__':
     # with open('buggy.py', 'r') as code_file:

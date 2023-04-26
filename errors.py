@@ -15,3 +15,9 @@ class InvalidUseOfReservedKeywordException(Exception):
     When a reserved keyword is used as a variable or a function's name.
     """
     pass
+
+class UnReachableCodeException(Exception):
+    """
+    When a line of code is after break, continue or return so it is never going to be executed.
+    """
+    pass

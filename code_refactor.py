@@ -1,5 +1,5 @@
 from cfg import CFG
-from bug_finder import find_unused_variables
+from bug_finder import find_bugs
 
 def refactor_find_syntax_errors(code, indentation):
     stack = []
@@ -97,14 +97,14 @@ if __name__ == '__main__':
         cg.construct_graph()
         print("Actual number of code lines:", cg.size)
         print('--------------------------------')
-        print(find_unused_variables(cg))
+        # print(find_bugs(cg))
         # print(cg.extractAllDefs())
         # cg.printCFG()
 #       nodes = cg.get_nodes_list()
-        # ch_cg = cg.child_graphs[list(cg.child_graphs.keys())[0]]
+        ch_cg = cg.child_graphs[list(cg.child_graphs.keys())[0]]
         # ch_cg.extractAllDefs()
         # ch2_cg = ch_cg.child_graphs[list(ch_cg.child_graphs.keys())[0]]
-        # ch_cg.construct_graph()
+        ch_cg.construct_graph()
         # ch_cg.printCFG()
         # print(ch_cg.code_lines)
         # print(ch2_cg.code_lines)

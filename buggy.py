@@ -13,20 +13,23 @@ if nterms > 4:
             return 'flag{hdj}'
         return x
         print('returned', 'anything')
+    print('Please do not interpret this as part of the function')
+    print('this too')
 else:
     used_but_undefined = 0
     def noHorayFunction():
         print('that contains')
         def aFunction():
             print("and that's it")
+    n9 = 0
 
-print(used_but_undefined)
+# print(used_but_undefined)
 
-# just_a_useless_dict = {
-#     'some': 'data',
-#     'that': 'is',
-#     'really': 'useless'
-# }
+just_a_useless_dict = {
+    'some': 'data',
+    'that': 'is',
+    'really': 'useless'
+}
 
 # check if the number of terms is valid
 """Just checking if
@@ -51,7 +54,9 @@ else:
         print(n1)
         nth = n1 + n2
         # update values
-        if n1 < n2: break
+        if n1 < n2:
+            break
+            print("cont")
         n1 = n2
         n2 = nth
         count += 1

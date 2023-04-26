@@ -105,13 +105,6 @@ class CFG():
                                     # if this graph contains a function, it may have another functions defined
                                     # in it, so they will also be child graphs for this function graph.
 
-    def _checkUnwantedLine(self, line):
-        if len(line.strip()) == 0: return True # If the line was empty
-        # If line is a string that is not used.
-        elif ((line.strip().startswith("'") and line.strip().endswith("'")) or 
-                (line.strip().startswith('"') and line.strip().endswith('"'))): return True
-        else: return False
-
     def printCFG(self):
         if not self.constructed: return
         queue = []
@@ -119,12 +112,12 @@ class CFG():
         visited_set_to = list(current.children.values())[0].visited
         queue.append(current)
         while len(queue) > 0:
-            x = queue.pop(0)
-            print(x, f" | P: {[i.id for i in x.sources]}")
-            for i in x.children.keys():
-                if x.children[i].visited == visited_set_to:
-                    x.children[i].visited += 1
-                    x.children[i].visited %= 2
+            current = queue.pop(0)
+            print(current, f" | P: {[i.id for i in current.sources]}")
+            for i in current.children.keys():
+                if current.children[i].visited == visited_set_to:
+                    current.children[i].visited += 1
+                    current.children[i].visited %= 2
                     queue.append(i)
 
     def get_nodes_list(self):
@@ -136,13 +129,13 @@ class CFG():
         visited_set_to = list(current.children.values())[0].visited
         queue.append(current)
         while len(queue) > 0:
-            x = queue.pop(0)
-            if x.get_info() + [i.code for i in x.sources] not in unique_nodes:
-                unique_nodes.append(x.get_info() + [i.code for i in x.sources])
-            for i in x.children.keys():
-                if x.children[i].visited == visited_set_to:
-                    x.children[i].visited += 1
-                    x.children[i].visited %= 2
+            current = queue.pop(0)
+            if current.get_info() + [i.code for i in current.sources] not in unique_nodes:
+                unique_nodes.append(current.get_info() + [i.code for i in current.sources])
+            for i in current.children.keys():
+                if current.children[i].visited == visited_set_to:
+                    current.children[i].visited += 1
+                    current.children[i].visited %= 2
                     queue.append(i)
         return unique_nodes
 
@@ -154,7 +147,7 @@ class CFG():
         to_remove = list()      # We add lines in the function to this list to be removed from the code.
 
         for line in self.code_lines:
-            if self._checkUnwantedLine(line): continue
+            if checks.checkUnwantedLine(line): continue
 
             line_indent = (len(line) - len(line.lstrip())) // self.indentation
             if line_indent < current_indent:    # if we get out of def block
@@ -164,7 +157,7 @@ class CFG():
                 in_def = [False, None]
             
             if line.strip()[:4] == 'def ' and not in_def[0]:
-                current_indent += 1
+                current_indent = line_indent + 1
                 in_def = [True, len(line) - len(line.lstrip())]
                 def_name = line.strip()[4:-1]
                 if checks.checkReservedKeyword(def_name.split('(')[0]):
@@ -190,9 +183,10 @@ class CFG():
                             # blocks to be closed so they can point to the following line
         added_indent = 0        # if 1 this indicates a new indentation has happened,
                                 # if -1 this indicates an indentation was closed
+        returns = []
 
         for line in self.code_lines:
-            if self._checkUnwantedLine(line): continue
+            if checks.checkUnwantedLine(line): continue
 
             common_child = None     # If a node was created but is going to be added to the children list of
                                     # more than one node, we save it to not create it again
@@ -226,20 +220,22 @@ class CFG():
             
             # How much is the current line indented. (number of tabs)
             line_indent = (len(line) - len(line.lstrip())) // self.indentation
-            return_break_flag = False
+            return_continue_flag = False
 
             # if this line indentation is less than the previous line indentation
             # used when a block or more are closed to correctly put edges between nodes
             # READ this block after you read the rest of the code to UNDERSTAND IT.
             if line_indent < current_indent:
-                return_break_flag = True
+                return_continue_flag = True
                 different_indent = current_indent - line_indent     # How many blocks were closed
                 for i in range(different_indent):   # For each block that was closed
                     # indents[current_indent - i]: most recent block
                     if indents[current_indent - i].node_type == 'else':
                         the_if_list.append((indents.pop(current_indent - i), current_indent - i))
                     elif indents[current_indent - i].node_type in ['for', 'while']:
-                        current.addNodeChild(indents[current_indent - i], Edge(False))
+                        if current.code[:7] != 'return ' and current.code != 'return':
+                            current.addNodeChild(indents[current_indent - i], Edge(False))
+                        else: returns.append(current)
                         # If there were "if" indentations that are closed in the same line with the while
                         # or for loops, so they should point back to the loop statement.
                         for j in range(len(the_if_list)):
@@ -256,7 +252,7 @@ class CFG():
                     # the last line in the if or elif blocks to point at it, so we save it in last list.
                     if last.get(line_indent) is None:
                         last[line_indent] = []
-                    if current.code[:7] != 'return ' and current.code[:6] != 'break\n':
+                    if current.code[:7] != 'return ' and current.code not in ['continue', 'break', 'return']:
                         last[line_indent].append(current)
                         if self.debug: print(f"ADDED {current.code} to last {line_indent}")
                         x = line_indent + 1
@@ -306,7 +302,7 @@ class CFG():
             the_if_list.clear()
 
             print(line, '\t\t', n_type)
-            if current.code[:7] == 'return ' or current.code == 'break' and return_break_flag:
+            if (current.code[:7] == 'return ' or current.code in ['continue', 'break', 'return']) and return_continue_flag:
                 current = common_child
             elif n_type in ['for', 'while', 'if', 'elif', 'else']:
                 current_indent += 1     # We entered a new block
@@ -329,3 +325,6 @@ class CFG():
                     if current in last: current = common_child
                     else: current = current.addNodeChild(common_child, edge)
                 self.size += 1
+
+        for i in returns:
+            i.addNodeChild(current, Edge(None))
