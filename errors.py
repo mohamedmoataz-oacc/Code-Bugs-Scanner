@@ -21,3 +21,9 @@ class UnReachableCodeException(Exception):
     When a line of code is after break, continue or return so it is never going to be executed.
     """
     pass
+
+class InValidBlockException(Exception):
+    """
+    When an elif or else block is used without an if block.
+    """
+    pass

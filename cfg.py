@@ -184,7 +184,8 @@ class CFG():
         current = self.root     # Current node pointer
         indents = dict()        # Dictionary of the lines that causes indentation
         the_if_list = []        # List of nodes containing if and elif statements
-        current_indent = 0      # How much is the previous line indented. (number of tabs)
+        current_indent = 0      # How much is the current block indented. (number of tabs)
+        prev_line_indent = 0    # How much is the previous line indented. (number of tabs).
         last = dict()       # contains nodes from if or elif blocks that are waiting for the elif or else
                             # blocks to be closed so they can point to the following line
         added_indent = 0        # if 1 this indicates a new indentation has happened,
@@ -221,7 +222,7 @@ class CFG():
                 err = f'Invalid block intializer: "{x}".'
                 for i in ['for', 'while', 'if', 'elif', 'else', 'def']:
                     if line.startswith(i):
-                        err += '\nDid you mean: "' + line.replace(i, i + ' ') + '" ?'
+                        err += '\nDid you mean: "' + i + ' ' + line[len(i):] + '" ?'
                 raise SyntaxError(err)
             
             # How much is the current line indented. (number of tabs)
@@ -232,6 +233,8 @@ class CFG():
             # used when a block or more are closed to correctly put edges between nodes
             # READ this block after you read the rest of the code to UNDERSTAND IT.
             if line_indent < current_indent:
+                if current.node_type in ['for', 'while', 'if', 'elif', 'else']:
+                    raise IndentationError(f'"{line}" is not properly indented after "{current.code}"')
                 return_continue_flag = True
                 different_indent = current_indent - line_indent     # How many blocks were closed
                 for i in range(different_indent):   # For each block that was closed
@@ -291,6 +294,8 @@ class CFG():
 
                 added_indent = -1   # Since an indentation block was closed
                 current_indent -= different_indent
+            elif line_indent != prev_line_indent and current.node_type not in ['for', 'while', 'if', 'elif', 'else']:
+                raise IndentationError(f'Line "{line}" not indented properly.')
 
             # Determine edge type
             if current.node_type in ['normal', 'def']:
@@ -331,6 +336,9 @@ class CFG():
                     self.size += 1
                 else:
                     current = current.addNodeChild(common_child, edge)
-
+            
+            prev_line_indent = line_indent
+            if current.node_type in ['elif', 'else'] and not [1 for i in current.sources if i.node_type in ['elif', 'if']]:
+                raise errors.InValidBlockException(f'Cannot use {current.node_type} statement without an if statement.')
         for i in returns:
             i.addNodeChild(current, Edge(None))

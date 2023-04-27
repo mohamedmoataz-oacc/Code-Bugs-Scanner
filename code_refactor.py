@@ -99,7 +99,7 @@ if __name__ == '__main__':
         print('--------------------------------')
         # print(cg.extractAllDefs())
         cg.printCFG()
-        print(find_bugs(cg))
+        # print(find_bugs(cg))
         # nodes = cg.get_nodes_list()
         # ch_cg = cg.child_graphs[list(cg.child_graphs.keys())[0]]
         # ch_cg.extractAllDefs()
