@@ -325,7 +325,8 @@ class CFG():
                     indents[current_indent] = current.addChild(line.strip(), n_type, edge, node_id = self.size)
                     self.size += 1
                 else:
-                    if current in last[line_indent]: indents[current_indent] = common_child
+                    if last.get(line_indent) is not None:
+                        if current in last[line_indent]: indents[current_indent] = common_child
                     else: indents[current_indent] = current.addNodeChild(common_child, edge)
                 current = indents[current_indent]   # Let the current pointer point to the newly added node
             else:

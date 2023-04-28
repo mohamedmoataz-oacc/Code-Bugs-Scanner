@@ -3,7 +3,7 @@ nterms = int(input("How many terms? "))
  
 # first two terms
 n1, n2 = 0, 1
-count = 0
+count = True == False
 # if count == 0:
 # print('hi')
 
@@ -35,9 +35,16 @@ else:
         xx = 99
  
 i = 0
-while i < 5 and xx != i:
+    # j = 'indentation check'
+while i < 5:
     e6 = 5
     zz = 5
+    if xx == i:
+        break
+        print('anything')
     e6 = e6 + 1
     i += 1
 # print(zz)
+
+for i, j in [[1,'hi'], [4,'hello']]:
+    print(i,j)

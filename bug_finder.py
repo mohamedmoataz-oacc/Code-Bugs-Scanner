@@ -3,22 +3,24 @@ import re
 import errors
 import checks
 
-def find_bugs(graph: cfg.CFG):
+def find_bugs(graph: cfg.CFG, graph_with_strings: cfg.CFG):
     """
     Can currently find defined but unused variables, variables that are used but not defined, invalid use
     of python reserved keywords and unreachable code after (break, continue and return statements).
     """
-    if not graph.constructed: return
+    if not graph.constructed and not graph_with_strings.constructed: return
     
     defs = dict()   # All definitions in the graph and if it was used or not
     current_defs = dict()   # All definitions until the line of code we reached
     stack = []
-    current = graph.root
-    visited_set_to = list(current.children.values())[0].visited     # To know if edge is visited
+    current = [graph.root, graph_with_strings.root]
+    visited_set_to = list(current[0].children.values())[0].visited     # To know if edge is visited
 
     stack.append(current)
     while len(stack) > 0:
         current: cfg.Node = stack.pop()
+        current_with_string = current[1]
+        current = current[0]
         is_break_or_continue = True if current.code in ['break', 'continue'] else False
         is_return = True if current.code == 'return' or current.code[:7] == 'return ' else False
 
@@ -34,6 +36,9 @@ def find_bugs(graph: cfg.CFG):
             x = current.code.split('=')
             if len(x) > 1:
                 if x[1] != '' and x[0][-1] not in ['!', '<', '>']:
+                    x[1] = x[1].strip()
+                    if x[1] not in ['True', 'False', 'None'] and checks.checkReservedKeyword(x[1]):
+                        raise errors.InvalidUseOfReservedKeywordException(f"Cannot use '{x[1].strip()}' as a variable name.")
                     # if line was (ex. counter += 1) or (ex. x //= 2)
                     if x[0][-1] in ['+', '-', '/', '*', '%', '^']:
                         x[0] = x[0][:-1]
@@ -44,7 +49,7 @@ def find_bugs(graph: cfg.CFG):
                             if defs.get(i.strip()) is None: defs[i.strip()] = [False, current]
                             if current_defs.get(i.strip()) is None: current_defs[i.strip()] = current.id
                         else:
-                            raise errors.InvalidUseOfReservedKeywordException(f"Cannot use {i.strip()} as a variable name.")
+                            raise errors.InvalidUseOfReservedKeywordException(f"Cannot use '{i.strip()}' as a variable name.")
         
         # Find uses
         if current.node_type not in ['def', 'else'] and current.code not in ['Start', 'End']:
@@ -66,23 +71,25 @@ def find_bugs(graph: cfg.CFG):
                 if not checks.checkReservedKeyword(used_variables[i]):
                     if current_defs.get(used_variables[i]) is None:
                         raise errors.NonDeclaredVariableException(
-                            f'Variable "{used_variables[i]}" was used in "{current.code}" but may not be declared.')
+                            f'Variable "{used_variables[i]}" is used in "{current_with_string.code}" but may not be declared.')
                     elif (defs[used_variables[i]][1].findCommonConditions(current.conditions_to_reach) 
                           != defs[used_variables[i]][1].conditions_to_reach):
                         raise errors.NonDeclaredVariableException(
-                            f'Variable "{used_variables[i]}" was used in "{current.code}" but may not be declared.')
+                            f'Variable "{used_variables[i]}" is used in "{current_with_string.code}" but may not be declared.')
                     else:
                         defs[used_variables[i]][0] = True
 
-        for i in current.children.keys():
+        for i, j in list(zip(list(current.children.keys()), list(current_with_string.children.keys()))):
             if is_break_or_continue or (is_return and current.code != 'End'):
-                err = f"{i.code} is never going to be executed after {current.code}"
+                err = f"{j.code} is never going to be executed after {current_with_string.code}"
                 raise errors.UnReachableCodeException(err)
             
             if current.children[i].visited == visited_set_to:
                 current.children[i].visited += 1
                 current.children[i].visited %= 2
-                stack.append(i)
+                current_with_string.children[j].visited += 1
+                current_with_string.children[j].visited %= 2
+                stack.append([i, j])
     
     err = ''
     for i, j in defs.items():
