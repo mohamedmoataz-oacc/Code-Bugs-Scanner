@@ -27,3 +27,9 @@ class InValidBlockException(Exception):
     When an elif or else block is used without an if block.
     """
     pass
+
+class FunctionNotFoundException(Exception):
+    """
+    A function is used but not defined.
+    """
+    pass

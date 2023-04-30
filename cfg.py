@@ -14,16 +14,6 @@ class Node():
     def __str__(self):
         return str(self.id) + ": " + self.code + " | Type: " + self.node_type + " | CTR: " + str(self.conditions_to_reach)
 
-    def get_info(self):
-        lis = [str(self.code), str(self.node_type), str(self.conditions_to_reach)]
-        if self.sources:
-            x = self.sources[0].children[self].edge
-        else:
-            x = None
-        if x is not None:
-            lis.append(str(x))
-        return lis
-
     def extract_condition(self, edge):
         """
         Extracts the condition of the if, elif, for or while lines.
@@ -66,13 +56,6 @@ class Node():
         """
         child_node = Node(child, node_type, self.extract_condition(edge), node_id=node_id)
         return self.addNodeChild(child_node, edge, True)
-    
-    
-    def get_all_edges(self):
-        """
-        Returns a list of all  edges from this node.
-        """
-        return self.children.values()
 
 class Edge:
     """
@@ -92,7 +75,6 @@ class Func:
     def __init__(self, scope, cfg):
         self.scope = scope
         self.cfg = cfg
-
 
 class CFG():
     """
@@ -126,25 +108,6 @@ class CFG():
                     current.children[i].visited %= 2
                     queue.append(i)
 
-    def get_nodes_list(self):
-        if not self.constructed: return
-        unique_nodes = []
-        # [code, type, condition to reach, parent1, parent2, parent3, ...]
-        queue = []
-        current = self.root
-        visited_set_to = list(current.children.values())[0].visited
-        queue.append(current)
-        while len(queue) > 0:
-            current = queue.pop(0)
-            if current.get_info() + [i.code for i in current.sources] not in unique_nodes:
-                unique_nodes.append(current.get_info() + [i.code for i in current.sources])
-            for i in current.children.keys():
-                if current.children[i].visited == visited_set_to:
-                    current.children[i].visited += 1
-                    current.children[i].visited %= 2
-                    queue.append(i)
-        return unique_nodes
-
     def extractAllDefs(self):
         current_indent = 0  # How much is the previous line indented. (number of tabs)
         def_code = None     # The code in the defined function
@@ -157,8 +120,8 @@ class CFG():
 
             line_indent = (len(line) - len(line.lstrip())) // self.indentation
             if line_indent < current_indent:    # if we get out of def block
-                new_cfg = CFG(def_code[:-1], self.indentation, self)
-                self.child_graphs[def_name] = new_cfg   # Add function graph to the children of this graph.
+                new_cfg = CFG(def_code[:-1], self.indentation, self, debug=self.debug)
+                self.child_graphs[def_name.split('(')[0]] = [new_cfg, def_name.split('(')[1][:-1]]   # Add function graph to the children of this graph.
                 current_indent = line_indent
                 in_def = [False, None]
             
@@ -263,22 +226,18 @@ class CFG():
                         last[line_indent] = []
                     if current.code[:7] != 'return ' and current.code not in ['continue', 'break', 'return']:
                         last[line_indent].append(current)
-                        if self.debug: print(f"ADDED {current.code} to last {line_indent}")
                         x = line_indent + 1
                         while last.get(x) is not None:
                             for i in last.pop(x):
                                 last[line_indent].append(i)
-                                if self.debug: print(f"ADDED {i.code} to last {line_indent}")
                             x += 1
                     if len(the_if_list) > 1:
                         for i in the_if_list[:-1]:
                             last[line_indent].append(i[0])
-                            if self.debug: print(f"ADDED {i[0].code} to last {line_indent}")
                             x = line_indent + 1
                             while last.get(x) is not None:
                                 for j in last.pop(x):
                                     last[line_indent].append(j)
-                                    if self.debug: print(f"ADDED {j.code} to last {line_indent}")
                                 x += 1
                         the_if_list = the_if_list[-1:]
                 elif last.get(line_indent) is not None:
@@ -287,7 +246,6 @@ class CFG():
                         if line_indent + 1 == the_if_list[-1][1]:
                             if the_if_list[-1][0].node_type == 'else': the_if_list.pop(-1)
                             for i in last.pop(line_indent):
-                                if self.debug: print(f"REMOVED {i.code} from last {line_indent}")
                                 if common_child is None:
                                     common_child = i.addChild(line.strip(), n_type, Edge(None), node_id = self.size)
                                 else: i.addNodeChild(common_child, Edge(None))
@@ -312,7 +270,7 @@ class CFG():
                 else: the_if_list[i][0].addNodeChild(common_child, Edge(False))
             the_if_list.clear()
 
-            print(line, '\t\t', n_type)
+            if self.debug: print(line, '\t\t', n_type)
             if (current.code[:7] == 'return ' or current.code in ['continue', 'break', 'return']) and return_continue_flag:
                 current = common_child
             elif n_type in ['for', 'while', 'if', 'elif', 'else']:
