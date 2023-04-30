@@ -1,3 +1,4 @@
+import time
 def refactor_find_syntax_errors(code, indentation):
     stack = []
     braces, matches = ['(', '{', '['], [')', '}', ']']
@@ -11,6 +12,10 @@ def refactor_find_syntax_errors(code, indentation):
     last = False        # If the last character was a line break or not. A space doesn't count
     semicolon_num = 0   # ex. "\n    foo", if the pointer is at f, then last will still be True
 
+    print('Refactoring code...')
+    time.sleep(1)
+    print('Checking for syntax errors (opened brackets, non-closed strings)')
+    time.sleep(2)
     for i in range(len(code)):  # iterates over every character in code
         if not in_string and code[i] == '#':  # Determines if this line is a comment  
             comment = True
@@ -46,7 +51,7 @@ def refactor_find_syntax_errors(code, indentation):
                 match = stack.pop()
                 if matches.index(code[i]) != braces.index(match[0]):
                     raise SyntaxError(f"Line {match[1]}: '{match[0]}' was closed using a false bracket '{code[i]}'.")
-            elif i == len(code) - 1 and len(stack) > 0:
+            if i == len(code) - 1 and len(stack) > 0:
                 # If we reach end of code and there are brackets that are still opened
                 err = ''
                 for bracket in stack:
@@ -82,4 +87,5 @@ def refactor_find_syntax_errors(code, indentation):
             code_without_strings += '\n'
         
         if code[i] == '\n': current_line += 1
+    # print(i == len(code) - 1, stack)
     return [new_code, semicolon_num, code_without_strings]

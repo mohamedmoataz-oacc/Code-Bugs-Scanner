@@ -91,7 +91,7 @@ def find_bugs(graph: cfg.CFG, graph_with_strings: cfg.CFG, *declared):
                             f'Variable "{used_variables[i]}" is used in "{current_with_string.code}" but may not be declared.')
                     else:
                         defs[used_variables[i]][0] = True
-
+        
         # Find used functions
         used_functions = re.findall('[\.a-zA-Z_][a-zA-Z0-9_]*[(]', code)
         for i in used_functions:
@@ -100,11 +100,7 @@ def find_bugs(graph: cfg.CFG, graph_with_strings: cfg.CFG, *declared):
             if graph.child_graphs.get(i) is None and not checks.checkBuiltInFunction(i):
                 raise errors.FunctionNotFoundException(
                     f'Function "{i}" is used in "{current_with_string.code}" but may not be defined or is used out of scope.')
-            else:
-                # TODO
-                pass
-                
-                    
+
 
         for i, j in list(zip(list(current.children.keys()), list(current_with_string.children.keys()))):
             if is_break_or_continue or (is_return and not (len(current.children) == 1
@@ -151,30 +147,6 @@ def duplicate_finder(code='buggy.py'):
                 break
         if not duplicated:
             break
-    print(duplicates)
-    dup = []
-    for i in range(len(duplicates)):
-        clone = [x+1 for x in duplicates[i][1][:]]
-        for j in range(i+1, len(duplicates)):
-            if duplicates[j][1] == clone:
-                dup.append([duplicates[i], duplicates[j]])
-    for d in dup:
-        print(d)
-
-
-# def find_duplicates(code):
-#     code = code.split('\n')
-#     code_lines = [line.strip().replace("'", '"') for line in code if not checks.checkUnwantedLine(line)]
-#     final_duplicates = dict()
-#     counter = 1
-#     duplicates = dict()
-#     for line in code_lines:
-#         if duplicates.get(line) is None: duplicates[line] = [counter]
-#         else: duplicates[line].append(counter)
-#         counter += 1
-
-if __name__ == '__main__':
-    # with open('buggy.py', 'r') as code_file:
-    # code = cr.refactor_find_syntax_errors(code_file.read(), 4)
-    duplicate_finder()
+    if not duplicates:
+        print('No duplicated code found. You are writing clean code sir. :)')
 

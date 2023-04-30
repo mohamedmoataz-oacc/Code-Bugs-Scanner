@@ -20,7 +20,7 @@ class Node():
         """
         x = self.conditions_to_reach.copy()
         if self.node_type in ['for', 'while', 'if', 'elif']:
-            x.append(f'{str(edge)[0]}{self.id}: ' + self.code[len(self.node_type)+1:-1])
+            x.append(f'{str(edge)[0]} - {self.id}: ' + self.code[len(self.node_type)+1:-1])
         return x
     
     def findCommonConditions(self, condition1):
@@ -142,6 +142,7 @@ class CFG():
         return len(self.child_graphs)
 
     def construct_graph(self):
+        if self.debug: print(self.root.code, '\t\t', self.root.node_type)
         self.extractAllDefs()
         self.constructed = True
         current = self.root     # Current node pointer
@@ -186,7 +187,7 @@ class CFG():
                 for i in ['for', 'while', 'if', 'elif', 'else', 'def']:
                     if line.startswith(i):
                         err += '\nDid you mean: "' + i + ' ' + line[len(i):] + '" ?'
-                raise SyntaxError(err)
+                raise errors.InValidBlockException(err)
             
             # How much is the current line indented. (number of tabs)
             line_indent = (len(line) - len(line.lstrip())) // self.indentation
@@ -211,7 +212,8 @@ class CFG():
                         # If there were "if" indentations that are closed in the same line with the while
                         # or for loops, so they should point back to the loop statement.
                         for j in range(len(the_if_list)):
-                            the_if_list[j][0].addNodeChild(indents[current_indent - i], Edge(False))
+                            if the_if_list[j][0].node_type != 'else':
+                                the_if_list[j][0].addNodeChild(indents[current_indent - i], Edge(False))
                         the_if_list = []
                         current = indents.pop(current_indent - i)
                     else:
@@ -239,17 +241,24 @@ class CFG():
                                 for j in last.pop(x):
                                     last[line_indent].append(j)
                                 x += 1
-                        the_if_list = the_if_list[-1:]
-                elif last.get(line_indent) is not None:
-                    if len(last[line_indent]) != 0 and len(the_if_list) != 0:
-                        # when we get out of all elifs or else, we point the nodes in last to the line
-                        if line_indent + 1 == the_if_list[-1][1]:
-                            if the_if_list[-1][0].node_type == 'else': the_if_list.pop(-1)
-                            for i in last.pop(line_indent):
-                                if common_child is None:
-                                    common_child = i.addChild(line.strip(), n_type, Edge(None), node_id = self.size)
-                                else: i.addNodeChild(common_child, Edge(None))
+                        the_if_list = the_if_list[-1:]                        
+                elif len([i for i in last.keys() if i >= line_indent]) != 0:
+                    lasts = [last[i] for i in last.keys() if i >= line_indent]
+                    lasts2 = []
+                    for i in lasts:
+                        lasts2.extend(i)
+                    
+                    if the_if_list:
+                        if the_if_list[-1][0].node_type == 'else': the_if_list.pop(-1)
 
+                    if current.node_type in ['for', 'while']: common_child = current
+                    for i in lasts2:
+                        if common_child is None:
+                            common_child = i.addChild(line.strip(), n_type, Edge(None), node_id = self.size)
+                            self.size += 1
+                        else: i.addNodeChild(common_child, Edge(None))
+                    if current.node_type in ['for', 'while']: common_child = None
+                    
                 added_indent = -1   # Since an indentation block was closed
                 current_indent -= different_indent
             elif line_indent != prev_line_indent and current.node_type not in ['for', 'while', 'if', 'elif', 'else']:
@@ -267,6 +276,7 @@ class CFG():
             for i in range(len(the_if_list)):
                 if common_child is None:
                     common_child = the_if_list[i][0].addChild(line.strip(), n_type, Edge(False), node_id = self.size)
+                    self.size += 1
                 else: the_if_list[i][0].addNodeChild(common_child, Edge(False))
             the_if_list.clear()
 

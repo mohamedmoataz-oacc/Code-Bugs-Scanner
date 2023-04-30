@@ -61,3 +61,14 @@ def calculate_grade(grades):
             elif grade <= 89: output.append('B')
             else: output.append('A')
     return output
+    print('a bug')
+
+# grade = 78;output = []
+# if True:
+#     if grade >= 0 and grade <= 100:
+#         if grade <= 59: output.append('F')
+#         elif grade <= 69: output.append('D')
+#         elif grade <= 79: output.append('C')
+#         elif grade <= 89: output.append('B')
+#         else: output.append('A')
+# print(output)
