@@ -3,20 +3,20 @@ import re
 import errors
 import checks
 
-def find_bugs(graph: cfg.CFG, graph_with_strings: cfg.CFG, *declared):
+def find_bugs(graph: cfg.CFG, graph_with_strings: cfg.CFG, *args):
     """
     Can currently find defined but unused variables, variables that are used but not defined, invalid use
     of python reserved keywords and unreachable code after (break, continue and return statements).
     """
     if not graph.constructed and not graph_with_strings.constructed: return
     
-    defs = dict()   # All definitions in the graph and if it was used or not
-    current_defs = dict()   # All definitions until the line of code we reached
-    if declared:
-        declared = [i.split('=')[0].strip() for i in declared[0].split(',')]
-        for variable in declared:
+    defs = graph.defs   # All definitions in the graph and if it was used or not
+    current_defs = {i: [j[1].id, False] for i, j in defs.items()}   # All definitions until the line of code we reached
+    if args:
+        args = [i.split('=')[0].strip() for i in args[0].split(',')]
+        for variable in args:
             defs[variable] = [False, graph.root]
-            current_defs[variable] = 0
+            current_defs[variable] = [0, True]
     stack = []
     current = [graph.root, graph_with_strings.root]
     visited_set_to = list(current[0].children.values())[0].visited     # To know if edge is visited
@@ -32,7 +32,7 @@ def find_bugs(graph: cfg.CFG, graph_with_strings: cfg.CFG, *declared):
 
         # If in an iteration, we return to line that is before the line we were using in the last iteration
         # we delete all definitions after the current line from the current_defs dict.
-        to_pop = [i for i, j in current_defs.items() if j > current.id]
+        to_pop = [i for i, j in current_defs.items() if j[0] > current.id and j[1]]
         for i in to_pop:
             current_defs.pop(i)
 
@@ -50,9 +50,10 @@ def find_bugs(graph: cfg.CFG, graph_with_strings: cfg.CFG, *declared):
                         if x[0][-1] in ['*', '/']: x[0] = x[0][:-1]
                     line_defs = x[0].split(',')     # In case (ex. x, y = 2, 3)
                     for i in line_defs:
+                        i = i.split('[')[0]
                         if not checks.checkReservedKeyword(i.strip()):
                             if defs.get(i.strip()) is None: defs[i.strip()] = [False, current]
-                            if current_defs.get(i.strip()) is None: current_defs[i.strip()] = current.id
+                            if current_defs.get(i.strip()) is None: current_defs[i.strip()] = [current.id, True]
                         else:
                             raise errors.InvalidUseOfReservedKeywordException(f"Cannot use '{i.strip()}' as a variable name.")
         elif current.node_type == 'for':
@@ -61,7 +62,7 @@ def find_bugs(graph: cfg.CFG, graph_with_strings: cfg.CFG, *declared):
             for i in line_defs:
                 if not checks.checkReservedKeyword(i.strip()):
                     if defs.get(i.strip()) is None: defs[i.strip()] = [False, current]
-                    if current_defs.get(i.strip()) is None: current_defs[i.strip()] = current.id
+                    if current_defs.get(i.strip()) is None: current_defs[i.strip()] = [current.id, True]
                 else:
                     raise errors.InvalidUseOfReservedKeywordException(f"Cannot use '{i.strip()}' as a variable name.")
                         
@@ -83,6 +84,7 @@ def find_bugs(graph: cfg.CFG, graph_with_strings: cfg.CFG, *declared):
                 # Make sure that the variables we got are not python reserved keywords
                 if not checks.checkReservedKeyword(used_variables[i]):
                     if current_defs.get(used_variables[i]) is None:
+                        print(current_defs)
                         raise errors.NonDeclaredVariableException(
                             f'Variable "{used_variables[i]}" is used in "{current_with_string.code}" but may not be declared.')
                     elif (defs[used_variables[i]][1].findCommonConditions(current.conditions_to_reach) 
@@ -93,14 +95,16 @@ def find_bugs(graph: cfg.CFG, graph_with_strings: cfg.CFG, *declared):
                         defs[used_variables[i]][0] = True
         
         # Find used functions
-        used_functions = re.findall('[\.a-zA-Z_][a-zA-Z0-9_]*[(]', code)
-        for i in used_functions:
-            if i[0] == '.': continue
-            i = i[:-1]
-            if graph.child_graphs.get(i) is None and not checks.checkBuiltInFunction(i):
-                raise errors.FunctionNotFoundException(
-                    f'Function "{i}" is used in "{current_with_string.code}" but may not be defined or is used out of scope.')
-
+        if current.node_type != 'def':
+            used_functions = re.findall('[\.a-zA-Z_][a-zA-Z0-9_]*[(]', code)
+            for i in used_functions:
+                if i[0] == '.': continue
+                i = i[:-1]
+                if graph.child_graphs.get(i) is None and not checks.checkBuiltInFunction(i):
+                    raise errors.FunctionNotFoundException(
+                        f'Function "{i}" is used in "{current_with_string.code}" but may not be defined or is used out of scope.')
+                elif graph.child_graphs.get(i) is not None:
+                    graph.child_graphs[i][2] = True
 
         for i, j in list(zip(list(current.children.keys()), list(current_with_string.children.keys()))):
             if is_break_or_continue or (is_return and not (len(current.children) == 1
@@ -115,12 +119,8 @@ def find_bugs(graph: cfg.CFG, graph_with_strings: cfg.CFG, *declared):
                 current_with_string.children[j].visited %= 2
                 stack.append([i, j])
     
-    err = ''
-    for i, j in defs.items():
-        if not j[0]:
-            err += f'\n"{i}" was never used'
-    if err: raise errors.DeclaredButNeverUsedException(err)
-    return list(defs.keys())
+    graph.defs.update(defs)
+    return defs
 
 
 def duplicate_finder(code='buggy.py'):

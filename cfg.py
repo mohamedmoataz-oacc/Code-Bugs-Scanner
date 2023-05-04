@@ -12,7 +12,8 @@ class Node():
         self.children = dict()  # contains {Node: Edge}
 
     def __str__(self):
-        return str(self.id) + ": " + self.code + " | Type: " + self.node_type + " | CTR: " + str(self.conditions_to_reach)
+        return str(self.id) + ": " + self.code
+        # return str(self.id) + ": " + self.code + " | Type: " + self.node_type + " | CTR: " + str(self.conditions_to_reach)
 
     def extract_condition(self, edge):
         """
@@ -89,6 +90,7 @@ class CFG():
         self.constructed = False    # indicates whether construct_graph was called on this graph or not
         self.code_lines = code.split('\n')
         self.code_lines.append('End')
+        self.defs = dict()
         self.child_graphs = dict()  # contains graphs of all functions defined in the code.
                                     # if this graph contains a function, it may have another functions defined
                                     # in it, so they will also be child graphs for this function graph.
@@ -101,7 +103,7 @@ class CFG():
         queue.append(current)
         while len(queue) > 0:
             current = queue.pop(0)
-            print(current, f" | P: {[i.id for i in current.sources]}")
+            print(current, f" | Parents: {[i.id for i in current.sources]}")
             for i in current.children.keys():
                 if current.children[i].visited == visited_set_to:
                     current.children[i].visited += 1
@@ -121,7 +123,7 @@ class CFG():
             line_indent = (len(line) - len(line.lstrip())) // self.indentation
             if line_indent < current_indent:    # if we get out of def block
                 new_cfg = CFG(def_code[:-1], self.indentation, self, debug=self.debug)
-                self.child_graphs[def_name.split('(')[0]] = [new_cfg, def_name.split('(')[1][:-1]]   # Add function graph to the children of this graph.
+                self.child_graphs[def_name.split('(')[0]] = [new_cfg, def_name.split('(')[1][:-1], False]   # Add function graph to the children of this graph.
                 current_indent = line_indent
                 in_def = [False, None]
             
@@ -145,6 +147,7 @@ class CFG():
         if self.debug: print(self.root.code, '\t\t', self.root.node_type)
         self.extractAllDefs()
         self.constructed = True
+        if self.parent is not None: self.defs.update(self.parent.defs)
         current = self.root     # Current node pointer
         indents = dict()        # Dictionary of the lines that causes indentation
         the_if_list = []        # List of nodes containing if and elif statements
@@ -294,7 +297,7 @@ class CFG():
                     self.size += 1
                 else:
                     if last.get(line_indent) is not None:
-                        if current in last[line_indent]: indents[current_indent] = common_child
+                        indents[current_indent] = common_child
                     else: indents[current_indent] = current.addNodeChild(common_child, edge)
                 current = indents[current_indent]   # Let the current pointer point to the newly added node
             else:
